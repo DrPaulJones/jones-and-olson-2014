@@ -1,0 +1,80 @@
+CALENDAR 1947 1 4
+ALLOCATE 0 2007:4
+OPEN DATA
+DATA(FORMAT=xlsx,org=obs)
+*
+*******Started with Romer and Romer and Pared down lag length using F-tests: General to Specific****************************
+LINREG(print) PCGDP1 / resids
+# CONSTANT EXOGER{0 to 12} pcgdp1{1 to 11}
+exclude(title="Test of Sentiment")
+# pcgdp1{1 to 3}
+exclude
+# exoger{5 to 8}
+disp "BIC" @25 -2.0*%logl+%nreg*log(%nobs)
+@McLeodLi resids /
+@RegRESET
+DO H = 0,12
+      SUMMARIZE(NOPRINT)
+      # exoger{0 TO H}
+     COMPUTE SERROR = %SUMLC/%CDSTAT
+     DISPLAY H %SUMLC SERROR %CDSTAT
+END DO H
+
+
+
+diff ffr / ffr1
+
+@uradf(det=constant,criterio=bic) ffr1
+@ERSTEST(lags=6) ffr1
+@dfunit(lags=6) ffr1
+@ppunit(lags=6) ffr1
+
+@uradf(det=constant,criterio=bic) pcgdp1
+@ERSTEST(lags=0) pcgdp1
+@dfunit(lags=0) pcgdp1
+@ppunit(lags=0) pcgdp1
+
+@uradf(det=constant,criterio=bic) exoger
+@ERSTEST(lags=0) exoger
+@dfunit(lags=0) exoger
+@ppunit(lags=0) exoger
+
+set test = ffr1{2}
+dofor thresh = test
+   @ThreshTest(graph,trim=0.15,thresh=thresh,nreps=1000) pcgdp1 /
+   # CONSTANT EXOGER{0 to 12} pcgdp1{1 to 11}
+   disp "Sum of Squared Residuals" @25 %rss
+   disp "AIC" @25 -2.0*%logl+%nreg*2
+   disp "BIC" @25 -2.0*%logl+%nreg*log(%nobs)
+end dofor thresh
+
+linreg(smpl=ffr1{2}>-0.03,robusterrors) pcgdp1 / resids1
+# CONSTANT EXOGER{0 to 12}  pcgdp1{1 to 11}
+DO H = 0,12
+      SUMMARIZE(NOPRINT)
+      # exoger{0 TO H}
+     COMPUTE SERROR = %SUMLC/%CDSTAT
+     DISPLAY H %SUMLC SERROR %CDSTAT
+END DO H
+cor(qstats,span=4,number=12) resids1
+
+linreg(smpl=ffr1{2}<-0.03,robusterrors) pcgdp1 / resids1
+# CONSTANT EXOGER{0 to 12}  pcgdp1{1 to 11}
+  DO H = 0,12
+      SUMMARIZE(NOPRINT)
+      # exoger{0 TO H}
+     COMPUTE SERROR = %SUMLC/%CDSTAT
+     DISPLAY H %SUMLC SERROR %CDSTAT
+END DO H
+
+cor(qstats,span=4,number=12) resids1
+
+
+
+
+
+
+
+
+
+
